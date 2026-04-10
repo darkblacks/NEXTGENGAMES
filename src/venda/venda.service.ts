@@ -1,3 +1,4 @@
+// venda.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,14 +11,26 @@ export class VendaService {
     private readonly vendaRepository: Repository<Venda>,
   ) {}
 
-  findAll(): Promise<Venda[]> {
-    return this.vendaRepository.find();
+  async findAll(): Promise<Venda[]> {
+    const vendas = await this.vendaRepository.find();
+
+    if (vendas.length === 0) {
+      throw new NotFoundException('Nada Encontrado');
+    }
+
+    return vendas;
   }
 
-  findById(id: number): Promise<Venda | null> {
-    return this.vendaRepository.findOne({
+  async findById(id: number): Promise<Venda> {
+    const venda = await this.vendaRepository.findOne({
       where: { id },
     });
+
+    if (!venda) {
+      throw new NotFoundException('Venda não encontrada!');
+    }
+
+    return venda;
   }
 
   async create(venda: Venda): Promise<Venda> {
@@ -29,22 +42,12 @@ export class VendaService {
   }
 
   async update(venda: Venda): Promise<Venda> {
-    const existe = await this.findById(venda.id);
-
-    if (!existe) {
-      throw new NotFoundException('Venda não encontrada!');
-    }
-
+    await this.findById(venda.id);
     return this.vendaRepository.save(venda);
   }
 
   async delete(id: number): Promise<void> {
-    const existe = await this.findById(id);
-
-    if (!existe) {
-      throw new NotFoundException('Venda não encontrada!');
-    }
-
+    await this.findById(id);
     await this.vendaRepository.delete(id);
   }
 }

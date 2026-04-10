@@ -1,3 +1,4 @@
+// preco-produto.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,16 +11,30 @@ export class PrecoProdutoService {
     private readonly precoRepository: Repository<PrecoProduto>,
   ) {}
 
-  findAll(): Promise<PrecoProduto[]> {
-    return this.precoRepository.find();
+  async findAll(): Promise<PrecoProduto[]> {
+    const precos = await this.precoRepository.find();
+
+    if (precos.length === 0) {
+      throw new NotFoundException('Nada Encontrado');
+    }
+
+    return precos;
   }
 
-  findById(id: number): Promise<PrecoProduto | null> {
-    return this.precoRepository.findOne({ where: { id } });
+  async findById(id: number): Promise<PrecoProduto> {
+    const preco = await this.precoRepository.findOne({
+      where: { id },
+    });
+
+    if (!preco) {
+      throw new NotFoundException('Preço não encontrado!');
+    }
+
+    return preco;
   }
 
-  findByProduto(produtoId: number): Promise<PrecoProduto[]> {
-    return this.precoRepository.find({
+  async findByProduto(produtoId: number): Promise<PrecoProduto[]> {
+    const precos = await this.precoRepository.find({
       where: {
         produto: { id: produtoId },
       },
@@ -27,10 +42,16 @@ export class PrecoProdutoService {
         dataInicio: 'DESC',
       },
     });
+
+    if (precos.length === 0) {
+      throw new NotFoundException('Nada Encontrado');
+    }
+
+    return precos;
   }
 
-  findAtivoByProduto(produtoId: number): Promise<PrecoProduto | null> {
-    return this.precoRepository.findOne({
+  async findAtivoByProduto(produtoId: number): Promise<PrecoProduto> {
+    const preco = await this.precoRepository.findOne({
       where: {
         produto: { id: produtoId },
         ativo: true,
@@ -39,6 +60,12 @@ export class PrecoProdutoService {
         dataInicio: 'DESC',
       },
     });
+
+    if (!preco) {
+      throw new NotFoundException('Nada Encontrado');
+    }
+
+    return preco;
   }
 
   async create(preco: PrecoProduto): Promise<PrecoProduto> {
@@ -46,22 +73,12 @@ export class PrecoProdutoService {
   }
 
   async update(preco: PrecoProduto): Promise<PrecoProduto> {
-    const existe = await this.findById(preco.id);
-
-    if (!existe) {
-      throw new NotFoundException('Preço não encontrado!');
-    }
-
+    await this.findById(preco.id);
     return this.precoRepository.save(preco);
   }
 
   async delete(id: number): Promise<void> {
-    const existe = await this.findById(id);
-
-    if (!existe) {
-      throw new NotFoundException('Preço não encontrado!');
-    }
-
+    await this.findById(id);
     await this.precoRepository.delete(id);
   }
 }
